@@ -1,0 +1,3 @@
+import { GenerateStyling } from '@/application/styling/generate-styling'; import { RecordFeedback } from '@/application/learning/record-feedback'; import { OpenAIImageGenerator } from '@/infrastructure/ai/openai-image-generator'; import { FileExperimentRepository } from '@/infrastructure/learning/file-experiment-repository'; import { EpsilonGreedyPolicy } from '@/infrastructure/learning/epsilon-greedy-policy';
+const experiments=new FileExperimentRepository(); const policy=new EpsilonGreedyPolicy();
+export const stylingContainer={generateStyling:new GenerateStyling(new OpenAIImageGenerator(),experiments,policy),recordFeedback:new RecordFeedback(experiments),experiments};

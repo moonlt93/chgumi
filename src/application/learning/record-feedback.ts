@@ -1,0 +1,2 @@
+import type { ExperimentRepositoryPort } from '@/domain/learning/ports'; import type { ExperimentContext, FeedbackSignal, PromptVariant } from '@/domain/learning/model'; import { rewardFor } from '@/domain/learning/reward';
+export class RecordFeedback { constructor(private repo:ExperimentRepositoryPort){} async execute(x:{generationId:string;variant:PromptVariant;context:ExperimentContext;signal:FeedbackSignal}){await this.repo.append({...x,reward:rewardFor(x.signal),createdAt:new Date().toISOString()});} }

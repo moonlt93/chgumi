@@ -1,0 +1,117 @@
+[
+  {
+    "id": "case-01-date-dandy",
+    "input": "/test/person-01.png",
+    "occasion": "DATE",
+    "vibe": "DANDY",
+    "expected": {
+      "preserve": [
+        "identity",
+        "body",
+        "pose",
+        "background"
+      ],
+      "style": [
+        "smart casual",
+        "clean",
+        "refined"
+      ],
+      "avoid": [
+        "business suit",
+        "tracksuit",
+        "large logo"
+      ]
+    }
+  },
+  {
+    "id": "case-02-work-minimal",
+    "input": "/test/person-02.png",
+    "occasion": "WORK",
+    "vibe": "MINIMAL",
+    "expected": {
+      "preserve": [
+        "identity",
+        "body",
+        "pose",
+        "background"
+      ],
+      "style": [
+        "minimal",
+        "neutral",
+        "professional"
+      ],
+      "avoid": [
+        "large logo",
+        "bright pattern"
+      ]
+    }
+  },
+  {
+    "id": "case-03-walk-cityboy",
+    "input": "/test/person-03.png",
+    "occasion": "WALK",
+    "vibe": "CITY_BOY",
+    "expected": {
+      "preserve": [
+        "identity",
+        "body",
+        "pose",
+        "background"
+      ],
+      "style": [
+        "relaxed",
+        "layered",
+        "contemporary"
+      ],
+      "avoid": [
+        "formal suit"
+      ]
+    }
+  },
+  {
+    "id": "case-04-workout-sporty",
+    "input": "/test/person-04.png",
+    "occasion": "WORKOUT",
+    "vibe": "SPORTY",
+    "expected": {
+      "preserve": [
+        "identity",
+        "body",
+        "pose",
+        "background"
+      ],
+      "style": [
+        "athletic",
+        "functional",
+        "clean"
+      ],
+      "avoid": [
+        "formal shoes",
+        "tailoring"
+      ]
+    }
+  },
+  {
+    "id": "case-05-walk-gorpcore",
+    "input": "/test/person-05.png",
+    "occasion": "WALK",
+    "vibe": "GORPCORE",
+    "expected": {
+      "preserve": [
+        "identity",
+        "body",
+        "pose",
+        "background"
+      ],
+      "style": [
+        "technical",
+        "functional",
+        "urban outdoor"
+      ],
+      "avoid": [
+        "costume",
+        "excessive tactical gear"
+      ]
+    }
+  }
+]

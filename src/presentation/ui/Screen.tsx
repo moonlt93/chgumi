@@ -1,0 +1,2 @@
+'use client'; import {motion} from 'motion/react';
+export function Screen({children,className=''}:{children:React.ReactNode;className?:string}){return <motion.main initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{duration:.2}} className={`min-h-dvh p-6 safe ${className}`}>{children}</motion.main>}

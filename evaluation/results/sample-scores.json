@@ -1,0 +1,6 @@
+[
+  {"caseId":"case-01-date-dandy","promptVersion":"P0","identityPreservation":72,"bodyPreservation":76,"posePreservation":90,"vibeMatch":76,"occasionMatch":70,"outfitCoherence":78,"realism":88,"total":76,"notes":["identity drift around face","date context is weak"]},
+  {"caseId":"case-01-date-dandy","promptVersion":"P1","identityPreservation":88,"bodyPreservation":78,"posePreservation":91,"vibeMatch":78,"occasionMatch":72,"outfitCoherence":80,"realism":89,"total":82,"notes":["body silhouette changed slightly"]},
+  {"caseId":"case-01-date-dandy","promptVersion":"P2","identityPreservation":91,"bodyPreservation":91,"posePreservation":94,"vibeMatch":79,"occasionMatch":74,"outfitCoherence":82,"realism":91,"total":86,"notes":["date intent could be stronger"]},
+  {"caseId":"case-01-date-dandy","promptVersion":"P3","identityPreservation":91,"bodyPreservation":90,"posePreservation":94,"vibeMatch":91,"occasionMatch":93,"outfitCoherence":91,"realism":92,"total":92,"notes":[]}
+]

@@ -1,0 +1,1 @@
+import './globals.css'; import {AppShell} from '@/presentation/ui/AppShell'; export const metadata={title:'CHUGUMI',description:'원하는 분위기의 나를 입어보세요'}; export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="ko"><body><AppShell>{children}</AppShell></body></html>}

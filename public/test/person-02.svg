@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="1024" viewBox="0 0 768 1024">
+<rect width="768" height="1024" fill="#e5e7eb"/><rect x="64" y="64" width="640" height="896" rx="32" fill="#fafafa"/>
+<circle cx="384" cy="240" r="86" fill="#d6b49a"/><path d="M302 222c12-85 154-93 168 0-41-35-126-37-168 0z" fill="#292524"/>
+<rect x="282" y="330" width="204" height="290" rx="70" fill="#374151"/><rect x="232" y="360" width="72" height="310" rx="36" fill="#d6b49a"/><rect x="464" y="360" width="72" height="310" rx="36" fill="#d6b49a"/>
+<rect x="300" y="590" width="76" height="300" rx="34" fill="#1c1917"/><rect x="392" y="590" width="76" height="300" rx="34" fill="#1c1917"/>
+<rect x="282" y="866" width="104" height="36" rx="18" fill="#0c0a09"/><rect x="382" y="866" width="104" height="36" rx="18" fill="#0c0a09"/>
+<text x="384" y="950" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#78716c">Synthetic evaluation fixture 2</text></svg>

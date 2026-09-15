@@ -1,0 +1,1 @@
+export function StepHeader({step,title,description}:{step:string;title:string;description?:string}){return <header><p className="text-sm text-zinc-400">{step}</p><h1 className="mt-5 text-3xl font-black">{title}</h1>{description&&<p className="mt-2 text-zinc-500">{description}</p>}</header>}
