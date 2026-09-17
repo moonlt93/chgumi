@@ -1,0 +1,33 @@
+{
+  "id": "autumn-01",
+  "description": "합성 성인 남성과 올리브 오버셔츠의 가상 착장 편집 실험",
+  "source": "Codex built-in image_gen",
+  "syntheticPerson": true,
+  "inputs": {
+    "person": "/test/virtual-try-on/autumn-01/person.png",
+    "garment": "/test/virtual-try-on/autumn-01/garment.png"
+  },
+  "sampleOutput": "/test/virtual-try-on/autumn-01/try-on-sample.png",
+  "groundTruth": false,
+  "execution": {
+    "imageEditExperiment": "completed",
+    "applicationEndToEnd": "not_run",
+    "dedicatedVirtualTryOnModel": "not_used"
+  },
+  "prompts": {
+    "person": "Use case: photorealistic-natural. Create one portrait-oriented full-body studio photograph for a virtual clothing try-on test fixture. A fictional Korean adult man age about 28, ordinary realistic proportions, short black hair, neutral relaxed expression, facing straight toward camera, standing with feet hip-width apart and arms slightly away from torso, hands visible. Wearing a plain light gray crewneck short-sleeve T-shirt, dark charcoal straight trousers and simple white sneakers. Entire head and feet visible with margins. Plain warm light gray seamless background, soft even daylight, realistic skin and fabric, no beautification, no accessories, no text, no logos, no collage. This is the BEFORE image; outfit simple so a replacement upper garment is easy to assess.",
+    "garment": "Use case: product-mockup. Generate a single photorealistic clothing product photograph for an autumn men's virtual try-on test. One warm dark olive green cotton twill overshirt, long sleeves, straight pointed collar, exactly five visible dark brown buttons down the center front, two symmetrical rectangular chest patch pockets with pointed flaps and one dark brown button on each flap, straight hem, buttoned cuffs. Front view, fully buttoned, sleeves slightly spread, entire garment visible. Flat lay on plain off-white background, evenly lit, clear fabric texture and seams, no model, no mannequin, no hanger, no accessories, no pants, no typography, no brand, no collage. Preserve physically coherent garment geometry. This garment pairs with charcoal trousers and white sneakers for restrained autumn casual styling.",
+    "tryOn": "Use case: identity-preserve. Virtual try-on feasibility experiment. Image 1 is the edit target: fictional adult man in gray tee, charcoal trousers, white sneakers against gray studio background. Image 2 is the garment reference: olive cotton twill overshirt. Edit ONLY the upper clothing of Image 1 so the man wears the exact overshirt from Image 2, fully buttoned. Preserve his face, hair, skin, expression, body proportions, head position, stance, hand positions, trousers, sneakers, framing, background and illumination as closely as possible. Transfer the garment's olive color, pointed collar, two chest patch pockets with pointed flaps and one brown button on each flap, exactly five central visible brown buttons, long sleeves and buttoned cuffs, straight hem and cotton twill texture. Natural regular fit, shirt untucked. Do not redesign the garment or beautify the person. Return one full-body photograph only, no text or comparison layout. The reference garment image is authoritative for design."
+  },
+  "checks": [
+    "얼굴·헤어·표정·포즈 유지",
+    "바지·신발·배경 유지",
+    "올리브 색상과 트윌 질감 유지",
+    "중앙 단추 5개와 플랩 가슴 주머니 2개 유지",
+    "손·소매·목선의 자연스러운 연결"
+  ],
+  "limitations": [
+    "단일 합성 사례이며 품질 지표나 실제 사이즈 정확도를 검증하지 않음",
+    "현재 앱은 의류 참조 이미지 입력 미지원"
+  ]
+}

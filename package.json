@@ -6,28 +6,42 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src scripts tests --max-warnings 0",
     "eval": "tsx scripts/evaluate.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "format": "prettier --write src scripts tests *.ts *.mjs *.json",
+    "format:check": "prettier --check src scripts tests *.ts *.mjs *.json",
+    "lint:fix": "npm run lint -- --fix",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "verify": "npm run check && npm run build -- --webpack",
+    "package:submission": "python3 scripts/package_submission.py"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "lucide-react": "latest",
     "motion": "latest",
     "next": "latest",
+    "openai": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "zustand": "latest",
-    "openai": "latest",
-    "@aws-sdk/client-s3": "latest"
+    "zustand": "latest"
   },
   "devDependencies": {
-    "typescript": "latest",
-    "tailwindcss": "latest",
+    "@eslint/js": "10.0.1",
     "@tailwindcss/postcss": "latest",
     "dotenv": "latest",
-    "tsx": "latest"
+    "eslint": "10.10.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-simple-import-sort": "14.0.0",
+    "prettier": "3.9.6",
+    "tailwindcss": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "8.70.0"
   }
 }

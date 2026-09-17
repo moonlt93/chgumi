@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.tsbuildinfo
+data/experiments/
+evaluation/generated/
+evaluation/report.json
+
+data/users/
+artifacts/
+

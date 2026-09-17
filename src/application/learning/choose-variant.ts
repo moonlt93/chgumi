@@ -1,2 +1,15 @@
-import type { ExperimentRepositoryPort, VariantPolicyPort } from '@/domain/learning/ports'; import type { ExperimentContext } from '@/domain/learning/model';
-export class ChooseVariant { constructor(private repo:ExperimentRepositoryPort,private policy:VariantPolicyPort){} async execute(c:ExperimentContext){const stats=await this.repo.stats(c);return {variant:this.policy.choose(c,stats),stats};} }
+import type { ExperimentContext } from '@/domain/learning/model';
+import type { ExperimentRepositoryPort, VariantPolicyPort } from '@/domain/learning/ports';
+
+export class ChooseVariant {
+  constructor(
+    private repository: ExperimentRepositoryPort,
+    private policy: VariantPolicyPort,
+  ) {}
+
+  async execute(context: ExperimentContext) {
+    const stats = await this.repository.stats(context);
+
+    return { variant: this.policy.choose(context, stats), stats };
+  }
+}

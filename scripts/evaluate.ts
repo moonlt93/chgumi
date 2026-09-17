@@ -1,96 +1,126 @@
 import 'dotenv/config';
+
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { buildVersionedPrompt, PromptVersion } from '../src/infrastructure/evaluation/prompt-versions';
-import { buildJudgePrompt, weightedTotal } from '../src/infrastructure/evaluation/evaluation';
-import type { Occasion, Vibe } from '../src/domain/styling/model';
+
+import dotenv from 'dotenv';
+
+import type { GenerationRecord } from '../src/domain/learning/model';
+import { PROMPT_VARIANTS } from '../src/domain/learning/model';
+import { isOccasion, isVibe } from '../src/domain/styling/model';
+import { defaultPreferences } from '../src/domain/styling/preferences';
+import { OpenAIImageGenerator } from '../src/infrastructure/ai/openai-image-generator';
+import { OpenAIStylingEvaluator } from '../src/infrastructure/evaluation/openai-styling-evaluator';
+import {
+  buildVersionedPrompt,
+  type PromptVersion,
+} from '../src/infrastructure/evaluation/prompt-versions';
 
 const root = process.cwd();
-// dotenv/config reads .env; Next.js normally uses .env.local, so load it explicitly for this CLI.
-try {
-  const dotenv = await import('dotenv');
-  dotenv.config({ path: path.join(root, '.env.local'), override: true });
-} catch {}
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) throw new Error('OPENAI_API_KEY is missing in .env.local');
+const environment = dotenv.config({ path: path.join(root, '.env.local'), override: true });
 
-type Case = { id: string; input: string; occasion: Occasion; vibe: Vibe };
-const cases: Case[] = JSON.parse(await fs.readFile(path.join(root, 'evaluation/cases.json'), 'utf8'));
+if (environment.error && (environment.error as NodeJS.ErrnoException).code !== 'ENOENT') {
+  throw environment.error;
+}
+
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY is missing');
+}
+
 const limit = Number(process.env.EVAL_CASE_LIMIT || 1);
-const versions = (process.env.EVAL_PROMPT_VERSIONS || 'P0,P1,P2,P3').split(',') as PromptVersion[];
-const selected = cases.slice(0, Math.max(1, limit));
-const outDir = path.join(root, 'evaluation/generated');
-await fs.mkdir(outDir, { recursive: true });
+const versions = (process.env.EVAL_PROMPT_VERSIONS || PROMPT_VARIANTS.join(',')).split(',');
+const allowedVersions = [...PROMPT_VARIANTS, 'P0', 'P1', 'P2', 'P3'];
 
-function mimeFor(file: string) { return file.endsWith('.jpg') || file.endsWith('.jpeg') ? 'image/jpeg' : 'image/png'; }
-function dataUrl(bytes: Buffer, mime: string) { return `data:${mime};base64,${bytes.toString('base64')}`; }
-
-async function generate(input: Buffer, filename: string, prompt: string) {
-  const form = new FormData();
-  form.append('model', process.env.IMAGE_MODEL || 'gpt-image-2');
-  form.append('prompt', prompt);
-  form.append('size', process.env.IMAGE_SIZE || '1024x1536');
-  form.append('quality', process.env.IMAGE_QUALITY || 'medium');
-  form.append('image', new Blob([input], { type: mimeFor(filename) }), path.basename(filename));
-  const res = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form });
-  if (!res.ok) throw new Error(`generation ${res.status}: ${await res.text()}`);
-  const json = await res.json() as { data: Array<{ b64_json?: string; url?: string }> };
-  const item = json.data[0];
-  if (item.b64_json) return Buffer.from(item.b64_json, 'base64');
-  if (item.url) return Buffer.from(await (await fetch(item.url)).arrayBuffer());
-  throw new Error('No generated image returned');
+if (
+  !Number.isSafeInteger(limit) ||
+  limit < 1 ||
+  !versions.every((version) => allowedVersions.includes(version))
+) {
+  throw new Error('Invalid EVAL_CASE_LIMIT or EVAL_PROMPT_VERSIONS');
 }
 
-async function judge(before: Buffer, after: Buffer, occasion: string, vibe: string) {
-  const schema = {
-    type: 'object', additionalProperties: false,
-    properties: {
-      identityPreservation: { type: 'number', minimum: 0, maximum: 100 },
-      bodyPreservation: { type: 'number', minimum: 0, maximum: 100 },
-      posePreservation: { type: 'number', minimum: 0, maximum: 100 },
-      vibeMatch: { type: 'number', minimum: 0, maximum: 100 },
-      occasionMatch: { type: 'number', minimum: 0, maximum: 100 },
-      outfitCoherence: { type: 'number', minimum: 0, maximum: 100 },
-      realism: { type: 'number', minimum: 0, maximum: 100 },
-      notes: { type: 'array', maxItems: 3, items: { type: 'string' } },
-    },
-    required: ['identityPreservation','bodyPreservation','posePreservation','vibeMatch','occasionMatch','outfitCoherence','realism','notes'],
-  };
-  const body = {
-    model: process.env.EVAL_MODEL || 'gpt-5.6-luna',
-    input: [{ role: 'user', content: [
-      { type: 'input_text', text: buildJudgePrompt(occasion, vibe) },
-      { type: 'input_text', text: 'BEFORE image:' },
-      { type: 'input_image', image_url: dataUrl(before, 'image/png') },
-      { type: 'input_text', text: 'AFTER image:' },
-      { type: 'input_image', image_url: dataUrl(after, 'image/png') },
-    ]}],
-    text: { format: { type: 'json_schema', name: 'styling_evaluation', strict: true, schema } },
-  };
-  const res = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(`judge ${res.status}: ${await res.text()}`);
-  const json = await res.json() as { output_text?: string; output?: Array<{ content?: Array<{ text?: string }> }> };
-  const text = json.output_text || json.output?.flatMap(x => x.content || []).map(x => x.text || '').join('') || '';
-  const score = JSON.parse(text);
-  const total = weightedTotal(score);
-  return { ...score, total };
+const rawCases: unknown = JSON.parse(
+  await fs.readFile(path.join(root, 'evaluation/cases.json'), 'utf8'),
+);
+
+if (!Array.isArray(rawCases)) {
+  throw new Error('Evaluation cases must be an array');
 }
 
-const report: any[] = [];
-for (const c of selected) {
-  const relative = c.input.replace(/^\//, '').replace(/\.svg$/, '.png');
-  const inputPath = path.join(root, 'public', relative);
-  const before = await fs.readFile(inputPath);
+const cases = rawCases.map((value: unknown) => {
+  if (!value || typeof value !== 'object') {
+    throw new Error('Invalid evaluation case');
+  }
+  const item = value as Record<string, unknown>;
+  if (
+    typeof item.id !== 'string' ||
+    !/^[a-z0-9-]+$/i.test(item.id) ||
+    typeof item.input !== 'string' ||
+    !isOccasion(item.occasion) ||
+    !isVibe(item.vibe)
+  ) {
+    throw new Error('Invalid evaluation case');
+  }
+  return { id: item.id, input: item.input, occasion: item.occasion, vibe: item.vibe };
+});
+const outputDirectory = path.join(root, 'evaluation/generated');
+const generator = new OpenAIImageGenerator();
+const evaluator = new OpenAIStylingEvaluator();
+const report = [];
+
+await fs.mkdir(outputDirectory, { recursive: true });
+
+for (const evaluationCase of cases.slice(0, limit)) {
+  const inputPath = path.resolve(
+    root,
+    'public',
+    evaluationCase.input.replace(/^\//, '').replace(/\.svg$/, '.png'),
+  );
+  if (!inputPath.startsWith(path.resolve(root, 'public') + path.sep)) {
+    throw new Error('Evaluation input must be inside public');
+  }
+  const bytes = await fs.readFile(inputPath);
+  const mimeType = /\.jpe?g$/i.test(inputPath) ? 'image/jpeg' : 'image/png';
+  const original = new File([new Uint8Array(bytes)], path.basename(inputPath), { type: mimeType });
   for (const version of versions) {
-    console.log(`→ ${c.id} ${version}`);
-    const prompt = buildVersionedPrompt(version, c.occasion, c.vibe);
-    const after = await generate(before, inputPath, prompt);
-    const resultPath = path.join(outDir, `${c.id}-${version}.png`);
-    await fs.writeFile(resultPath, after);
-    const score = await judge(before, after, c.occasion, c.vibe);
-    report.push({ caseId: c.id, version, occasion: c.occasion, vibe: c.vibe, result: path.relative(root, resultPath), score });
-    console.log(`  total=${score.total}`);
+    console.log(`${evaluationCase.id} ${version}`);
+    const result = await generator.edit({
+      image: original,
+      filename: original.name,
+      prompt: buildVersionedPrompt(
+        version as PromptVersion,
+        evaluationCase.occasion,
+        evaluationCase.vibe,
+      ),
+    });
+    const generation: GenerationRecord = {
+      id: randomUUID(),
+      sessionId: 'offline',
+      sourceHash: 'offline',
+      context: { occasion: evaluationCase.occasion, vibe: evaluationCase.vibe },
+      variant: PROMPT_VARIANTS.includes(version as never)
+        ? (version as GenerationRecord['variant'])
+        : 'CONTROL',
+      promptVersion: version,
+      preferences: defaultPreferences(),
+      refinements: [],
+      status: 'SUCCEEDED',
+      createdAt: new Date().toISOString(),
+    };
+    const findings = await evaluator.evaluate({ original, result, generation });
+    const resultPath = path.join(outputDirectory, `${evaluationCase.id}-${version}.png`);
+    await fs.writeFile(resultPath, result.bytes);
+    report.push({
+      caseId: evaluationCase.id,
+      version,
+      evaluatorVersion: evaluator.version,
+      model: evaluator.model,
+      findings,
+      result: path.relative(root, resultPath),
+    });
+    await fs.writeFile(path.join(root, 'evaluation/report.json'), JSON.stringify(report, null, 2));
   }
 }
-await fs.writeFile(path.join(root, 'evaluation/report.json'), JSON.stringify(report, null, 2));
-console.log(`\nDone: evaluation/report.json (${report.length} generations)`);
+
+console.log(`Saved evaluation/report.json (${report.length} results)`);
