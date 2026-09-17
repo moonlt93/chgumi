@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+  <meta charset="utf-8" />
+  <title>방 화면 크기 검증</title>
+  <style>
+    body { margin: 12px; font: 14px sans-serif; background: #e5e5e5; }
+    nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    button { padding: 8px; }
+    iframe { display: block; border: 1px solid #999; background: white; }
+  </style>
+  <nav aria-label="테스트 화면 크기">
+    <button onclick="resizeRoom(320,568)">작은 화면 320 × 568</button>
+    <button onclick="resizeRoom(390,844)">모바일 390 × 844</button>
+    <button onclick="resizeRoom(448,700)">넓은 화면 448 × 700</button>
+  </nav>
+  <iframe id="preview" title="반응형 방 미리보기" src="/" width="320" height="568"></iframe>
+  <script>
+    function resizeRoom(width, height) {
+      const frame = document.getElementById('preview');
+      frame.width = width;
+      frame.height = height;
+    }
+  </script>
+</html>

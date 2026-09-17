@@ -7,6 +7,8 @@ export interface CoachSuggestion {
 }
 
 export interface CoachResult {
+  id?: string;
+  promptVersion?: string;
   encouragement: string;
   suggestions: CoachSuggestion[];
   source: 'ai';
@@ -15,10 +17,29 @@ export interface CoachResult {
   toolsUsed: string[];
 }
 
+export const COACH_PROMPT_VERSION = 'life-coach-v2';
+
+export interface CoachRun {
+  id: string;
+  persona: string;
+  aspiration: string;
+  promptVersion: string;
+  inputRecordCount: number;
+  result: CoachResult;
+  selected: { category: 'outfit' | 'activity'; selectedAt: string }[];
+}
+
 export interface CoachContext {
   persona: { name: string; description: string; aspiration: string };
   records: { day: string; category: string; title: string; note: string; feeling: string }[];
   rewards: { day: string; completedCategories: string[] };
+  previousSuggestions?: {
+    category: 'outfit' | 'activity';
+    title: string;
+    minutes: number;
+    selected: boolean;
+    outcomes: { title: string; feeling: string; note: string }[];
+  }[];
 }
 
 export interface CoachPort {

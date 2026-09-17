@@ -40,9 +40,12 @@ export function LifeApp() {
   const [settings, setSettings] = useState(false);
   const [closet, setCloset] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const [record, setRecord] = useState<{ id: string; category: Category; title: string } | null>(
-    null,
-  );
+  const [record, setRecord] = useState<{
+    id: string;
+    category: Category;
+    title: string;
+    recommendationId?: string;
+  } | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
@@ -106,8 +109,8 @@ export function LifeApp() {
       setBusy(false);
     }
   }
-  function begin(category: Category, title: string) {
-    setRecord({ id: crypto.randomUUID(), category, title });
+  function begin(category: Category, title: string, recommendationId?: string) {
+    setRecord({ id: crypto.randomUUID(), category, title, recommendationId });
     setNotice('');
   }
 
@@ -243,21 +246,21 @@ export function LifeApp() {
             )}
           </form>
           <p className="footnote">
-            이 브라우저에 연결된 기록은 서버에 저장돼요. 쿠키를 지우거나 다른 기기에서는
-            이어볼 수 없어요.
+            이 브라우저에 연결된 기록은 서버에 저장돼요. 쿠키를 지우거나 다른 기기에서는 이어볼 수
+            없어요.
           </p>
         </section>
       ) : (
         <>
           {tab === 'room' && (
-            <section className="life-content">
+            <section className="life-content room-home">
               <div className="section-heading">
                 <div>
-                  <span className="eyebrow">MY LITTLE ROOM</span>
+                  <span className="eyebrow">나의 공간</span>
                   <h1>{state.profile.name}의 작은 방</h1>
                 </div>
                 <button className="text-button" onClick={() => setSettings(true)}>
-                  나의 방향
+                  목표 수정
                 </button>
               </div>
               <p className="muted">{state.profile.aspiration || persona.description}</p>
@@ -269,19 +272,17 @@ export function LifeApp() {
               </div>
               <progress value={state.xp % 100} max={100} aria-label="다음 레벨까지 경험치" />
               <Room equipped={equipment} />
-              <div className="room-caption">
-                <span>
-                  {previewItem ? `${previewItem.name} 미리보기` : '작은 실천이 쌓이는 나만의 공간'}
-                </span>
-                {previewItem && (
+              {previewItem && (
+                <div className="room-caption">
+                  <span>{previewItem.name} 미리보기</span>
                   <button className="text-button" onClick={() => setPreview(null)}>
                     미리보기 닫기
                   </button>
-                )}
-              </div>
+                </div>
+              )}
               <button className="secondary" onClick={() => setCloset(!closet)}>
                 <Armchair size={17} />
-                {closet ? '보관함 닫기' : '방과 캐릭터 꾸미기'}
+                {closet ? '보관함 닫기' : '내 방 꾸미기'}
               </button>
               {closet && (
                 <div className="inventory">
@@ -326,8 +327,8 @@ export function LifeApp() {
                   <Sparkles size={21} />
                 </span>
                 <span>
-                  <strong>오늘, 나를 위한 작은 실천</strong>
-                  <small>코디를 입어보거나 하루를 남겨보세요</small>
+                  <strong>오늘의 제안과 기록</strong>
+                  <small>해보고 싶은 일을 고르고, 경험을 남겨요.</small>
                 </span>
                 <ChevronRight size={18} />
               </button>
@@ -357,6 +358,19 @@ export function LifeApp() {
                 key={JSON.stringify([state.profile, state.entries])}
                 available={aiAvailable}
                 onRecord={begin}
+                runs={
+                  state.coachRuns?.filter(
+                    (run) =>
+                      run.persona === state.profile?.persona &&
+                      run.aspiration === state.profile.aspiration,
+                  ) ?? []
+                }
+                onChoose={(recommendationId, category) =>
+                  act(
+                    { action: 'choose-suggestion', recommendationId, category },
+                    '해보고 싶은 제안으로 남겼어요. 실천 후 느낌도 기록해 주세요.',
+                  )
+                }
               />
               <span className="demo-tag">데모 · 준비된 코디와 활동 제안</span>
               <article className="outfit-card">
@@ -392,8 +406,8 @@ export function LifeApp() {
                 </Link>
               ) : (
                 <p className="footnote">
-                  샘플로 모든 기록·성장·꾸미기를 체험할 수 있어요. 실제 사진 생성은 API 키 설정 후
-                  사용할 수 있어요.
+                  샘플로 모든 기록·성장·꾸미기를 체험할 수 있어요. 현재 환경에서는 실제 사진 생성을
+                  제공하지 않아요.
                 </p>
               )}
               <article className="activity-card">

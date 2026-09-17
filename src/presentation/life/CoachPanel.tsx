@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { Category } from '@/domain/life/catalog';
-import type { CoachResult } from '@/domain/life/coach';
+import type { CoachResult, CoachRun } from '@/domain/life/coach';
 
 const toolLabels: Record<string, string> = {
   get_persona: '원하는 모습 확인',
@@ -14,14 +14,19 @@ const toolLabels: Record<string, string> = {
 export function CoachPanel({
   available,
   onRecord,
+  onChoose,
+  runs,
 }: {
   available: boolean;
-  onRecord: (category: Category, title: string) => void;
+  onRecord: (category: Category, title: string, recommendationId?: string) => void;
+  onChoose: (recommendationId: string, category: Category) => Promise<boolean>;
+  runs: CoachRun[];
 }) {
   const [result, setResult] = useState<CoachResult | null>(null);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const request = useRef<AbortController | null>(null);
+  const previousResult = runs.at(-1)?.result;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,7 +37,7 @@ export function CoachPanel({
         }
         return response.json() as Promise<{ result: CoachResult | null }>;
       })
-      .then((payload) => setResult(payload.result))
+      .then((payload) => setResult(payload.result ?? previousResult ?? null))
       .catch((failure: Error) => {
         if (!controller.signal.aborted) {
           setError(failure.message);
@@ -42,7 +47,7 @@ export function CoachPanel({
       controller.abort();
       request.current?.abort();
     };
-  }, []);
+  }, [previousResult]);
 
   async function generate() {
     if (request.current) {
@@ -78,26 +83,29 @@ export function CoachPanel({
       <span className="eyebrow">A STEP THAT FITS ME</span>
       <h2>지금의 나에게 맞는 한 걸음</h2>
       <p className="muted">원하는 모습과 최근 경험을 함께 살펴볼게요.</p>
-      {!result && (
-        <>
-          <p className="footnote">
-            요청하면 페르소나·목표 문장과 최근 기록 최대 10개의 제목·메모·느낌을 OpenAI에 보내
-            제안을 만들어요. 메모는 기록당 최대 500자만 사용하며 사진과 이름은 보내지 않아요.
-          </p>
-          <button
-            className="primary"
-            disabled={!available || pending}
-            onClick={() => void generate()}
-          >
-            {pending ? '기록을 참고해 제안하는 중…' : '내 기록으로 AI 제안 받기'}
-          </button>
-          <p className="footnote">
-            {available
-              ? '요청 시 API 사용료가 발생해요. 하루 최대 5회, 실패도 포함돼요. 기록이 같으면 저장된 제안을 다시 보여줘요.'
-              : 'API 키가 설정되지 않아 아래의 샘플 제안을 보여드려요.'}
-          </p>
-        </>
-      )}
+      <>
+        <p className="footnote">
+          요청하면 페르소나·목표 문장과 최근 기록 최대 10개의 제목·메모·느낌을 OpenAI에 보내 제안을
+          만들어요. 최근 제안 최대 5회의 선택·실천 결과도 참고해요. 메모는 기록당 최대 500자만
+          사용하며 사진과 이름은 보내지 않아요.
+        </p>
+        <button
+          className="primary"
+          disabled={!available || pending}
+          onClick={() => void generate()}
+        >
+          {pending
+            ? '기록을 참고해 제안하는 중…'
+            : result
+              ? '최근 기록으로 다시 제안 받기'
+              : '내 기록으로 AI 제안 받기'}
+        </button>
+        <p className="footnote">
+          {available
+            ? '요청 시 API 사용료가 발생해요. 하루 최대 5회, 실패도 포함돼요. 기록이 같으면 저장된 제안을 다시 보여줘요.'
+            : '현재 AI 제안이 활성화되지 않아 아래의 샘플 제안을 이용할 수 있어요.'}
+        </p>
+      </>
       {error && (
         <p role="alert" className="sheet-error">
           {error} 아래 샘플과 직접 기록은 계속 사용할 수 있어요.
@@ -118,9 +126,24 @@ export function CoachPanel({
               <h3>{suggestion.title}</h3>
               <p>{suggestion.description}</p>
               <p className="coach-reason">제안한 이유 · {suggestion.reason}</p>
+              {result.id && (
+                <button
+                  className="secondary"
+                  disabled={runs
+                    .find((run) => run.id === result.id)
+                    ?.selected.some((item) => item.category === suggestion.category)}
+                  onClick={() => void onChoose(result.id!, suggestion.category)}
+                >
+                  {runs
+                    .find((run) => run.id === result.id)
+                    ?.selected.some((item) => item.category === suggestion.category)
+                    ? '해보고 싶은 제안으로 선택했어요'
+                    : '이 제안 해볼래요'}
+                </button>
+              )}
               <button
                 className="secondary"
-                onClick={() => onRecord(suggestion.category, suggestion.title)}
+                onClick={() => onRecord(suggestion.category, suggestion.title, result.id)}
               >
                 실천했어요 · 기록하기
               </button>
@@ -134,8 +157,8 @@ export function CoachPanel({
               ))}
             </ul>
             <p className="footnote">
-              새 기록이나 느낌을 남기면 다음 제안에 반영할 수 있어요. 제안 자체로 보상이 지급되지는
-              않아요.
+              선택은 관심 표현으로, 기록과 느낌은 실제 경험으로 구분해 다음 제안에 참고해요.
+              선택만으로 보상이 지급되지는 않아요.
             </p>
           </details>
         </>

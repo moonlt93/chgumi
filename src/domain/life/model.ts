@@ -1,5 +1,5 @@
 import type { Category, Slot } from './catalog';
-import type { CoachResult } from './coach';
+import type { CoachResult, CoachRun } from './coach';
 
 export interface LifeEntry {
   id: string;
@@ -10,11 +10,13 @@ export interface LifeEntry {
   feeling: string;
   createdAt: string;
   deleted?: boolean;
+  recommendationId?: string;
 }
 export interface LifeState {
   version: 1;
   coachCache?: { fingerprint: string; result: CoachResult };
   coachUsage?: { day: string; attempts: number; lastAttemptAt: string };
+  coachRuns?: CoachRun[];
   profile: { name: string; persona: string; aspiration: string } | null;
   xp: number;
   coins: number;

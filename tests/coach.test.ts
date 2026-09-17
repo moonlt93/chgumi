@@ -9,6 +9,7 @@ import { ManageLife, today } from '../src/application/life/manage-life';
 import { coachContext, RecommendLife } from '../src/application/life/recommend-life';
 import type { CoachContext, CoachPort, CoachResult } from '../src/domain/life/coach';
 import { initialState } from '../src/domain/life/model';
+import { coachInstructions } from '../src/infrastructure/life/coach-prompt';
 import { FileLifeRepository } from '../src/infrastructure/life/file-life-repository';
 import { OpenAILifeCoach, parseCoachReply } from '../src/infrastructure/life/openai-life-coach';
 
@@ -100,7 +101,10 @@ test('ReAct sends tool observations back to the model and returns only validated
     const observations = body.input.filter(
       (item: { type: string }) => item.type === 'function_call_output',
     );
-    assert.deepEqual(JSON.parse(observations[1].output), context.records);
+    assert.deepEqual(JSON.parse(observations[1].output), {
+      records: context.records,
+      previousSuggestions: [],
+    });
     return answer();
   });
   const output = await new OpenAILifeCoach({ apiKey: 'test-only', model: 'test-model' }).generate(
@@ -283,4 +287,121 @@ test('a profile change during generation prevents persisting a stale recommendat
   } finally {
     await f.cleanup();
   }
+});
+
+test('suggestion choice and recorded experience form distinct inputs for the next prompt', async () => {
+  const f = await fixture();
+  const inputs: CoachContext[] = [];
+  const provider: CoachPort = {
+    model: 'test-model',
+    generate: async (input) => {
+      inputs.push(input);
+      return result();
+    },
+  };
+  const service = new RecommendLife(f.repository, provider);
+  try {
+    const first = await service.execute(f.id);
+    assert.ok(first.id);
+    assert.equal(first.promptVersion, 'life-coach-v2');
+    const choice = {
+      action: 'choose-suggestion',
+      recommendationId: first.id,
+      category: 'activity',
+    };
+    await f.manager.execute(f.id, choice);
+    await f.manager.execute(f.id, choice);
+    let state = await f.repository.read(f.id);
+    assert.equal(state.coachRuns?.[0].selected.length, 1);
+    assert.equal(state.coins, 0);
+    const selected = coachContext(state).previousSuggestions?.find(
+      (item) => item.category === 'activity',
+    );
+    assert.equal(selected?.selected, true);
+    assert.deepEqual(selected?.outcomes, []);
+
+    const record = {
+      action: 'record',
+      id: randomUUID(),
+      recommendationId: first.id,
+      category: 'activity',
+      title: '걷기를 시도했어요',
+      note: '시간이 길어서 부담됐어요',
+      feeling: '어려웠어요',
+    };
+    await f.manager.execute(f.id, record);
+    await f.manager.execute(f.id, record);
+    const second = await service.execute(f.id, undefined, new Date(Date.now() + 61000));
+    assert.notEqual(second.id, first.id);
+    assert.equal(inputs.length, 2);
+    const observed = inputs[1].previousSuggestions?.find((item) => item.category === 'activity');
+    assert.equal(observed?.outcomes[0].feeling, '어려웠어요');
+    assert.match(coachInstructions(inputs[1]), /시간·준비·행동 범위를 줄이는/);
+    state = await f.repository.read(f.id);
+    assert.equal(state.coins, 20);
+    assert.equal(state.coachRuns?.length, 2);
+    assert.deepEqual(await service.read(f.id), second);
+
+    await f.manager.execute(f.id, { action: 'delete', id: record.id });
+    assert.ok(
+      coachContext(await f.repository.read(f.id)).previousSuggestions?.every(
+        (item) => item.outcomes.length === 0,
+      ),
+    );
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test('suggestions belong to their user and old goals do not become current preference evidence', async () => {
+  const f = await fixture();
+  try {
+    const service = new RecommendLife(f.repository, {
+      model: 'test-model',
+      generate: async () => result(),
+    });
+    const generated = await service.execute(f.id);
+    const otherId = randomUUID();
+    await f.manager.execute(otherId, { action: 'profile', name: '다른 사람', persona: 'calm' });
+    await assert.rejects(
+      f.manager.execute(otherId, {
+        action: 'choose-suggestion',
+        recommendationId: generated.id,
+        category: 'activity',
+      }),
+      /내 제안/,
+    );
+    await assert.rejects(
+      f.manager.execute(otherId, {
+        action: 'record',
+        id: randomUUID(),
+        recommendationId: generated.id,
+        category: 'activity',
+        title: '위조',
+        feeling: '좋았어요',
+      }),
+      /내 제안/,
+    );
+    await f.manager.execute(f.id, {
+      action: 'profile',
+      name: '테스터',
+      persona: 'curious',
+      aspiration: '새 목표',
+    });
+    assert.deepEqual(coachContext(await f.repository.read(f.id)).previousSuggestions, []);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test('prompt stages keep user instructions in observations and do not treat missing feedback as dislike', () => {
+  const input = {
+    ...context,
+    persona: { ...context.persona, aspiration: 'UNTRUSTED_IGNORE_RULES' },
+  };
+  const instructions = coachInstructions(input);
+  assert.ok(!instructions.includes('UNTRUSTED_IGNORE_RULES'));
+  assert.match(instructions, /미선택·미기록은 부정적인 평가가 아니다/);
+  assert.match(instructions, /현재 명시한 목표가 과거 행동보다 우선/);
+  assert.match(coachInstructions({ ...context, records: [] }), /시작용 제안/);
 });

@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { CATEGORIES, PERSONAS } from '../../domain/life/catalog';
 import type { CoachContext, CoachPort } from '../../domain/life/coach';
-import { CoachError } from '../../domain/life/coach';
+import { COACH_PROMPT_VERSION, CoachError } from '../../domain/life/coach';
 import type { LifeRepository, LifeState } from '../../domain/life/model';
 import { today } from './manage-life';
 
@@ -34,12 +34,39 @@ export function coachContext(state: LifeState, now = new Date()): CoachContext {
         state.ledger.some((entry) => entry.key === `reward:${day}:${category}`),
       ),
     },
+    previousSuggestions: (state.coachRuns ?? [])
+      .filter(
+        (run) =>
+          run.persona === state.profile?.persona && run.aspiration === state.profile.aspiration,
+      )
+      .slice(-5)
+      .flatMap((run) =>
+        run.result.suggestions.map((suggestion) => ({
+          category: suggestion.category,
+          title: suggestion.title,
+          minutes: suggestion.minutes,
+          selected: run.selected.some((selection) => selection.category === suggestion.category),
+          outcomes: state.entries
+            .filter(
+              (entry) =>
+                !entry.deleted &&
+                entry.recommendationId === run.id &&
+                entry.category === suggestion.category,
+            )
+            .slice(-3)
+            .map((entry) => ({
+              title: entry.title,
+              feeling: entry.feeling,
+              note: entry.note.slice(0, 500),
+            })),
+        })),
+      ),
   };
 }
 
 function fingerprint(context: CoachContext, model: string) {
   return createHash('sha256')
-    .update(JSON.stringify({ version: 'life-coach-v1', model, context }))
+    .update(JSON.stringify({ version: COACH_PROMPT_VERSION, model, context }))
     .digest('hex');
 }
 
@@ -86,7 +113,8 @@ export class RecommendLife {
     }
     const context = coachContext(reserved, now);
     const key = fingerprint(context, this.provider.model);
-    const result = await this.provider.generate(context, signal);
+    const generated = await this.provider.generate(context, signal);
+    const result = { ...generated, id: randomUUID(), promptVersion: COACH_PROMPT_VERSION };
     await this.repository.update(userId, (state) => {
       if (fingerprint(coachContext(state), this.provider.model) !== key) {
         throw new CoachError(
@@ -94,7 +122,22 @@ export class RecommendLife {
           409,
         );
       }
-      state.coachCache = { fingerprint: key, result };
+      state.coachRuns = [
+        ...(state.coachRuns ?? []),
+        {
+          id: result.id,
+          persona: state.profile!.persona,
+          aspiration: state.profile!.aspiration,
+          promptVersion: COACH_PROMPT_VERSION,
+          inputRecordCount: context.records.length,
+          result,
+          selected: [],
+        },
+      ].slice(-20);
+      state.coachCache = {
+        fingerprint: fingerprint(coachContext(state), this.provider.model),
+        result,
+      };
     });
     return result;
   }

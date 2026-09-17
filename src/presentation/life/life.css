@@ -231,10 +231,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 5px;
+  gap: 16px;
+}
+.section-heading > div {
+  min-width: 0;
 }
 .section-heading h1 {
   font-size: 24px;
+  overflow-wrap: anywhere;
 }
 .text-button {
   font-size: 11px;
@@ -277,11 +281,43 @@
   border-radius: 5px;
 }
 .room-stage {
-  height: 340px;
+  height: clamp(180px, calc(100svh - 565px), 280px);
   position: relative;
-  perspective: 1000px;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 70%, #e8e5d6, transparent 70%);
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 50% 75%, #e8e5d6, #f5f3eb 75%);
+}
+.room-camera {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 360px;
+  height: 300px;
+  perspective: 1000px;
+  transform: translate(-50%, -50%) scale(var(--room-scale, 1));
+}
+.room-home {
+  padding-top: 20px;
+}
+.room-home .muted {
+  overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.room-home .level-row {
+  margin-top: 16px;
+}
+.interactive-room {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0 16px;
+}
+.avatar-controls {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fffdf8;
 }
 .room-world {
   position: absolute;
@@ -289,7 +325,7 @@
   top: 50%;
   width: 270px;
   height: 230px;
-  transform: translate(-50%, -22%) rotateX(63deg) scale(1);
+  transform: translate(-50%, -22%) rotateX(63deg);
   transform-style: preserve-3d;
 }
 .room-block {
@@ -756,12 +792,6 @@
   .life-content {
     padding: 22px 17px;
   }
-  .room-world {
-    transform: translate(-50%, -22%) rotateX(63deg) scale(0.88);
-  }
-  .room-stage {
-    height: 305px;
-  }
   .life-app h1 {
     font-size: 23px;
   }
@@ -811,29 +841,68 @@
   animation: avatar-left-reach 1.8s ease-in-out;
 }
 .avatar-message {
-  margin: -8px 0 8px;
+  margin: 0;
   text-align: center;
   font-size: 12px;
   color: #526d4d;
-  min-height: 20px;
+  min-height: 2lh;
+  display: grid;
+  align-items: center;
+  overflow-wrap: anywhere;
 }
 .avatar-actions {
-  display: flex;
-  justify-content: center;
-  gap: 7px;
-  margin: 0 0 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
 }
 .avatar-actions button {
   background: #edf0e7;
   color: #415d46;
   border: 1px solid #dce3d5;
-  border-radius: 18px;
-  padding: 7px 11px;
-  font-size: 11px;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 12px;
 }
 .avatar-actions button[aria-pressed='true'] {
   background: #314d40;
   color: white;
+}
+@media (max-height: 700px) {
+  .life-header {
+    padding: 12px 18px 10px;
+  }
+  .room-home {
+    padding-top: 12px;
+  }
+  .room-home .section-heading h1 {
+    margin: 4px 0;
+    font-size: 20px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .room-home > .muted {
+    margin: 4px 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .room-home .level-row {
+    margin-top: 8px;
+  }
+  .interactive-room {
+    margin-top: 12px;
+    gap: 12px;
+  }
+  .room-stage {
+    height: clamp(130px, calc(100svh - 400px), 220px);
+  }
+  .avatar-controls {
+    padding: 10px;
+    gap: 8px;
+  }
 }
 @keyframes avatar-greet {
   0%,
