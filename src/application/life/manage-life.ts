@@ -32,6 +32,7 @@ export class ManageLife {
           persona,
           aspiration: string(body.aspiration ?? '', 160, true),
         };
+        delete state.coachCache;
         return;
       }
       if (!state.profile) {
@@ -69,6 +70,7 @@ export class ManageLife {
           throw new LifeError('오늘 기록은 최대 20개까지 남길 수 있어요.');
         }
         state.entries.push({ id, category, title, note, feeling, day, createdAt });
+        delete state.coachCache;
         const key = `reward:${day}:${category}`;
         if (!state.ledger.some((entry) => entry.key === key)) {
           const reward = REWARDS[category];
@@ -83,6 +85,7 @@ export class ManageLife {
         if (!entry) {
           throw new LifeError('기록을 찾을 수 없습니다.');
         }
+        delete state.coachCache;
         if (body.action === 'delete') {
           entry.deleted = true;
           entry.title = '';

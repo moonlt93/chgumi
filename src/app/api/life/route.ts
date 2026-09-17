@@ -6,11 +6,11 @@ import { NextResponse } from 'next/server';
 import { ManageLife, today } from '@/application/life/manage-life';
 import type { LifeState } from '@/domain/life/model';
 import { LifeError } from '@/domain/life/model';
-import { FileLifeRepository } from '@/infrastructure/life/file-life-repository';
+import { aiAvailable, sameOrigin } from '@/infrastructure/config/server-environment';
+import { createLifeRepository } from '@/infrastructure/life/life-repository';
+import { LifeStorageError } from '@/infrastructure/life/supabase-life-repository';
 
 export const runtime = 'nodejs';
-const repository = new FileLifeRepository();
-const manager = new ManageLife(repository);
 const cookieName = 'chugumi-life';
 
 function userId(request: NextRequest) {
@@ -24,14 +24,15 @@ function response(state: LifeState, id: string, request: NextRequest) {
     {
       state: { ...state, entries: state.entries.filter((entry) => !entry.deleted) },
       today: today(),
-      aiAvailable: Boolean(process.env.OPENAI_API_KEY),
+      aiAvailable: aiAvailable(),
+      photoAvailable: aiAvailable() && !process.env.VERCEL,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );
   result.cookies.set(cookieName, id, {
     httpOnly: true,
     sameSite: 'strict',
-    secure: request.nextUrl.protocol === 'https:',
+    secure: Boolean(process.env.VERCEL) || request.nextUrl.protocol === 'https:',
     path: '/',
     maxAge: 60 * 60 * 24 * 365,
   });
@@ -40,24 +41,17 @@ function response(state: LifeState, id: string, request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const id = userId(request);
-    return response(await repository.read(id), id, request);
-  } catch {
+    return response(await createLifeRepository().read(id), id, request);
+  } catch (error) {
     return NextResponse.json(
-      { message: '저장된 데이터를 읽지 못했습니다. 서버 저장 경로를 확인해 주세요.' },
-      { status: 500 },
+      {
+        message:
+          error instanceof LifeStorageError
+            ? error.message
+            : '저장된 데이터를 읽지 못했습니다. 서버 저장 경로를 확인해 주세요.',
+      },
+      { status: 503, headers: { 'Cache-Control': 'no-store' } },
     );
-  }
-}
-function sameOrigin(request: NextRequest) {
-  const origin = request.headers.get('origin');
-  if (!origin) {
-    return false;
-  }
-  try {
-    const url = new URL(origin);
-    return ['http:', 'https:'].includes(url.protocol) && url.host === request.headers.get('host');
-  } catch {
-    return false;
   }
 }
 export async function POST(request: NextRequest) {
@@ -88,12 +82,18 @@ export async function POST(request: NextRequest) {
     }
     const input: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     const id = userId(request);
+    const manager = new ManageLife(createLifeRepository());
     return response(await manager.execute(id, input), id, request);
   } catch (error) {
     const expected = error instanceof LifeError || error instanceof SyntaxError;
     return NextResponse.json(
-      { message: expected ? error.message : '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.' },
-      { status: expected ? 400 : 500, headers: { 'Cache-Control': 'no-store' } },
+      {
+        message:
+          expected || error instanceof LifeStorageError
+            ? error.message
+            : '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      },
+      { status: expected ? 400 : 503, headers: { 'Cache-Control': 'no-store' } },
     );
   }
 }

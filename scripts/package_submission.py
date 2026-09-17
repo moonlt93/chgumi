@@ -8,7 +8,7 @@ files = ['package.json', 'package-lock.json', 'tsconfig.json', 'next-env.d.ts',
          'next.config.ts', 'next.config.mjs', 'postcss.config.mjs',
          'eslint.config.mjs', '.prettierrc.json', '.prettierignore',
          '.editorconfig', '.gitignore', '.env.example', 'README.md', 'AGENTS.md']
-directories = ['src', 'public', 'tests', 'scripts', 'docs']
+directories = ['src', 'public', 'tests', 'scripts', 'docs', 'supabase']
 selected = [root / name for name in files if (root / name).is_file()]
 for name in directories:
     selected.extend(path for path in (root / name).rglob('*')

@@ -23,9 +23,10 @@ import type { Category } from '@/domain/life/catalog';
 import { CATEGORIES, FEELINGS, PERSONAS, REWARDS, SHOP } from '@/domain/life/catalog';
 import type { LifeState } from '@/domain/life/model';
 
+import { CoachPanel } from './CoachPanel';
 import { Room } from './Room';
 
-type Payload = { state: LifeState; today: string; aiAvailable: boolean };
+type Payload = { state: LifeState; today: string; aiAvailable: boolean; photoAvailable: boolean };
 type Tab = 'room' | 'today' | 'history' | 'shop';
 const categoryNames = { outfit: '코디 입어 보기', activity: '작은 활동', journal: '오늘의 기록' };
 
@@ -126,7 +127,7 @@ export function LifeApp() {
       </div>
     );
   }
-  const { state, today, aiAvailable } = data;
+  const { state, today, aiAvailable, photoAvailable } = data;
   const persona = PERSONAS.find((item) => item.id === state.profile?.persona) || PERSONAS[0];
   const level = Math.floor(state.xp / 100) + 1;
   const rewarded = (category: Category) =>
@@ -242,7 +243,7 @@ export function LifeApp() {
             )}
           </form>
           <p className="footnote">
-            이 브라우저에 연결된 기록은 서버의 로컬 파일에 저장돼요. 쿠키를 지우거나 다른 기기에서는
+            이 브라우저에 연결된 기록은 서버에 저장돼요. 쿠키를 지우거나 다른 기기에서는
             이어볼 수 없어요.
           </p>
         </section>
@@ -352,6 +353,11 @@ export function LifeApp() {
                 <br />
                 마음에 드는 것부터, 내 속도로 해보세요.
               </p>
+              <CoachPanel
+                key={JSON.stringify([state.profile, state.entries])}
+                available={aiAvailable}
+                onRecord={begin}
+              />
               <span className="demo-tag">데모 · 준비된 코디와 활동 제안</span>
               <article className="outfit-card">
                 <div className="outfit-photo">
@@ -380,7 +386,7 @@ export function LifeApp() {
                   </button>
                 </div>
               </article>
-              {aiAvailable ? (
+              {photoAvailable ? (
                 <Link className="secondary" href="/photo">
                   내 사진으로 AI 코디 만들기 →
                 </Link>

@@ -1,3 +1,43 @@
+.coach-panel {
+  margin: 20px 0 26px;
+  padding: 20px;
+  border: 1px solid #dce3d5;
+  border-radius: 17px;
+  background: #f0f4eb;
+}
+.coach-encouragement {
+  color: #415d46;
+  font-size: 14px;
+}
+.coach-suggestion {
+  margin: 15px 0;
+  padding: 15px;
+  background: #fff;
+  border-radius: 12px;
+}
+.coach-suggestion h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+.coach-suggestion p {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.coach-suggestion small,
+.coach-reason {
+  color: #6f7766;
+}
+.coach-panel details {
+  font-size: 11px;
+}
+.coach-panel summary {
+  cursor: pointer;
+}
+.coach-panel ul {
+  padding-left: 17px;
+  margin-top: 8px;
+}
 .life-app {
   --ink: #314d40;
   --muted: #77786e;

@@ -6,11 +6,21 @@ import { NextResponse } from 'next/server';
 import { parseGenerateRequest } from '@/application/styling/parse-generate-request';
 import { GenerationUnavailableError, StylingError } from '@/domain/styling/errors';
 import { stylingContainer } from '@/infrastructure/composition/styling-container';
+import { aiAvailable } from '@/infrastructure/config/server-environment';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
+  if (!aiAvailable() || process.env.VERCEL) {
+    return NextResponse.json(
+      {
+        code: 'GENERATION_UNAVAILABLE',
+        message: '현재 환경에서는 사진 생성을 사용할 수 없습니다.',
+      },
+      { status: 503 },
+    );
+  }
   try {
     const input = parseGenerateRequest(await req.formData());
     const sessionId = req.cookies.get('chugumi-session')?.value || randomUUID();
